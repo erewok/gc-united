@@ -1,0 +1,15 @@
+[package]
+name = "gc-mod02"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gc-core.workspace = true
+# Used by src/bin/bench.rs as well as the tests, so not a dev-dependency.
+gc-workloads.workspace = true
+gc-harness.workspace = true
+
+[[bin]]
+name = "bench-mod02"
+path = "src/bin/bench.rs"

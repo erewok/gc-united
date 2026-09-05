@@ -1,0 +1,15 @@
+[package]
+name = "gc-mod01"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gc-core.workspace = true
+
+[dev-dependencies]
+gc-workloads.workspace = true
+
+[[bin]]
+name = "bench-mod01"
+path = "src/bin/bench.rs"
