@@ -17,13 +17,21 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GcError {
     /// The request could not be satisfied, even after collecting.
-    OutOfMemory { requested: u32, used: u32, capacity: u32 },
+    OutOfMemory {
+        requested: u32,
+        used: u32,
+        capacity: u32,
+    },
 }
 
 impl fmt::Display for GcError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GcError::OutOfMemory { requested, used, capacity } => write!(
+            GcError::OutOfMemory {
+                requested,
+                used,
+                capacity,
+            } => write!(
                 f,
                 "out of memory: wanted {requested} bytes, {used} of {capacity} in use"
             ),

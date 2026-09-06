@@ -145,7 +145,10 @@ impl MarkCompact {
     ///
     /// Nothing is moved and no reference is changed here.
     pub fn compute_forwarding(&mut self) -> u32 {
-        todo!("record where each of the survivors below {} is going", self.top)
+        todo!(
+            "record where each of the survivors below {} is going",
+            self.top
+        )
     }
 
     /// Rewrite every reference to point at where its target is going, rather

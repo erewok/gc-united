@@ -18,17 +18,50 @@ fn mk(capacity: usize) -> MarkCompact {
 
 // ---- general conformance --------------------------------------------------
 
-#[test] fn allocates_and_reads_back() { checks::allocates_and_reads_back(mk); }
-#[test] fn retains_reachable() { checks::retains_reachable(mk); }
-#[test] fn globals_are_roots() { checks::globals_are_roots(mk); }
-#[test] fn reclaims_unreachable() { checks::reclaims_unreachable(mk); }
-#[test] fn preserves_sharing() { checks::preserves_sharing(mk); }
-#[test] fn collects_cycles() { checks::collects_cycles(mk); }
-#[test] fn stable_across_repeated_collections() { checks::stable_across_repeated_collections(mk); }
-#[test] fn runs_in_a_small_heap() { checks::runs_in_a_small_heap(mk); }
-#[test] fn survives_root_churn() { checks::survives_root_churn(mk); }
-#[test] fn reports_its_work() { checks::reports_its_work(mk); }
-#[test] fn traces_deep_structures() { checks::traces_deep_structures(mk); }
+#[test]
+fn allocates_and_reads_back() {
+    checks::allocates_and_reads_back(mk);
+}
+#[test]
+fn retains_reachable() {
+    checks::retains_reachable(mk);
+}
+#[test]
+fn globals_are_roots() {
+    checks::globals_are_roots(mk);
+}
+#[test]
+fn reclaims_unreachable() {
+    checks::reclaims_unreachable(mk);
+}
+#[test]
+fn preserves_sharing() {
+    checks::preserves_sharing(mk);
+}
+#[test]
+fn collects_cycles() {
+    checks::collects_cycles(mk);
+}
+#[test]
+fn stable_across_repeated_collections() {
+    checks::stable_across_repeated_collections(mk);
+}
+#[test]
+fn runs_in_a_small_heap() {
+    checks::runs_in_a_small_heap(mk);
+}
+#[test]
+fn survives_root_churn() {
+    checks::survives_root_churn(mk);
+}
+#[test]
+fn reports_its_work() {
+    checks::reports_its_work(mk);
+}
+#[test]
+fn traces_deep_structures() {
+    checks::traces_deep_structures(mk);
+}
 
 // ---- compaction -----------------------------------------------------------
 
@@ -233,7 +266,10 @@ fn globals_follow_their_objects() {
 
     let kept = mu.global("kept");
     let after = mu.handle(kept).addr();
-    assert_ne!(before, after, "the filler below it was garbage, so it should have moved down");
+    assert_ne!(
+        before, after,
+        "the filler below it was garbage, so it should have moved down"
+    );
     let child = mu.load(kept, 0);
     assert_eq!(
         mu.read_u64(child, 0),

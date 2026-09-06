@@ -33,7 +33,11 @@ pub struct Rng(u64);
 
 impl Rng {
     pub fn new(seed: u64) -> Rng {
-        Rng(if seed == 0 { 0x9E37_79B9_7F4A_7C15 } else { seed })
+        Rng(if seed == 0 {
+            0x9E37_79B9_7F4A_7C15
+        } else {
+            seed
+        })
     }
     pub fn next_u64(&mut self) -> u64 {
         let mut x = self.0;
@@ -331,7 +335,12 @@ pub fn old_to_young<C: Collector>(mu: &mut Mutator<C>, slots: u16, rounds: u32, 
 /// The graph is a DAG, not a tree: a collector that copies an object every
 /// time it finds a reference to it will silently turn shared nodes into
 /// independent duplicates.
-pub fn shared_dag<C: Collector>(mu: &mut Mutator<C>, parents: u32, children: u16, seed: u64) -> u64 {
+pub fn shared_dag<C: Collector>(
+    mu: &mut Mutator<C>,
+    parents: u32,
+    children: u16,
+    seed: u64,
+) -> u64 {
     let base = mu.root_depth();
     let mut rng = Rng::new(seed);
 

@@ -35,7 +35,11 @@ pub fn allocates_and_reads_back<C: Collector>(mk: impl Fn(usize) -> C) {
             i * 7 + 1,
             "object {n} came back with a different payload than was written to it"
         );
-        assert_eq!(mu.read_u64(slot, 1), !i, "object {n}: second payload word differs");
+        assert_eq!(
+            mu.read_u64(slot, 1),
+            !i,
+            "object {n}: second payload word differs"
+        );
     }
     mu.assert_consistent();
 }
@@ -87,10 +91,21 @@ pub fn globals_are_roots<C: Collector>(mk: impl Fn(usize) -> C) {
     mu.assert_consistent();
 
     let kept = mu.global("only_reference");
-    assert_eq!(mu.read_u64(kept, 0), 0xABCD_EF01, "the global's object was corrupted");
+    assert_eq!(
+        mu.read_u64(kept, 0),
+        0xABCD_EF01,
+        "the global's object was corrupted"
+    );
     let child = mu.load(kept, 0);
-    assert!(!mu.is_null(child), "the global's object lost its only child");
-    assert_eq!(mu.read_u64(child, 0), 0x1234_5678, "the child was corrupted");
+    assert!(
+        !mu.is_null(child),
+        "the global's object lost its only child"
+    );
+    assert_eq!(
+        mu.read_u64(child, 0),
+        0x1234_5678,
+        "the child was corrupted"
+    );
     mu.unwind(base);
 }
 
@@ -175,7 +190,10 @@ pub fn traces_deep_structures<C: Collector>(mk: impl Fn(usize) -> C) {
     let head = mu.global("deep_chain");
     let actual = wl::walk_list(&mut mu, head, 120_000);
     mu.unwind(base);
-    assert_eq!(expected, actual, "the deep chain's contents changed across collection");
+    assert_eq!(
+        expected, actual,
+        "the deep chain's contents changed across collection"
+    );
 }
 
 /// A live set of constant size must occupy constant space, collection after
@@ -300,7 +318,7 @@ pub fn survives_root_churn<C: Collector>(mk: impl Fn(usize) -> C) {
         mu.write_u64(o, 0, round as u64);
         // Half the time the object is retained; the rest becomes garbage as
         // soon as the stack unwinds.
-        if rng.next_u64() % 2 == 0 {
+        if rng.next_u64().is_multiple_of(2) {
             mu.store(a, (round % 4) as u16, o);
         }
         let spare = mu.dup(o);

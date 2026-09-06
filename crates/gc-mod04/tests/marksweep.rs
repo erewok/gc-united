@@ -4,7 +4,6 @@
 //! not pass and module 3 needed a whole algorithm for should now pass without
 //! the collector doing anything special about cycles at all.
 
-use gc_core::collector::Collector;
 use gc_core::mutator::Mutator;
 use gc_harness::checks;
 use gc_mod04::MarkSweep;
@@ -16,17 +15,50 @@ fn mk(capacity: usize) -> MarkSweep {
 
 // ---- general conformance --------------------------------------------------
 
-#[test] fn allocates_and_reads_back() { checks::allocates_and_reads_back(mk); }
-#[test] fn retains_reachable() { checks::retains_reachable(mk); }
-#[test] fn globals_are_roots() { checks::globals_are_roots(mk); }
-#[test] fn reclaims_unreachable() { checks::reclaims_unreachable(mk); }
-#[test] fn preserves_sharing() { checks::preserves_sharing(mk); }
-#[test] fn collects_cycles() { checks::collects_cycles(mk); }
-#[test] fn stable_across_repeated_collections() { checks::stable_across_repeated_collections(mk); }
-#[test] fn runs_in_a_small_heap() { checks::runs_in_a_small_heap(mk); }
-#[test] fn survives_root_churn() { checks::survives_root_churn(mk); }
-#[test] fn reports_its_work() { checks::reports_its_work(mk); }
-#[test] fn traces_deep_structures() { checks::traces_deep_structures(mk); }
+#[test]
+fn allocates_and_reads_back() {
+    checks::allocates_and_reads_back(mk);
+}
+#[test]
+fn retains_reachable() {
+    checks::retains_reachable(mk);
+}
+#[test]
+fn globals_are_roots() {
+    checks::globals_are_roots(mk);
+}
+#[test]
+fn reclaims_unreachable() {
+    checks::reclaims_unreachable(mk);
+}
+#[test]
+fn preserves_sharing() {
+    checks::preserves_sharing(mk);
+}
+#[test]
+fn collects_cycles() {
+    checks::collects_cycles(mk);
+}
+#[test]
+fn stable_across_repeated_collections() {
+    checks::stable_across_repeated_collections(mk);
+}
+#[test]
+fn runs_in_a_small_heap() {
+    checks::runs_in_a_small_heap(mk);
+}
+#[test]
+fn survives_root_churn() {
+    checks::survives_root_churn(mk);
+}
+#[test]
+fn reports_its_work() {
+    checks::reports_its_work(mk);
+}
+#[test]
+fn traces_deep_structures() {
+    checks::traces_deep_structures(mk);
+}
 
 // ---- marking --------------------------------------------------------------
 
@@ -48,8 +80,14 @@ fn marking_reaches_everything_live_and_nothing_else() {
     mu.unwind(base);
 
     mu.gc.mark_from_roots();
-    assert!(mu.gc.is_marked(live_h), "an object named by a global is reachable");
-    assert!(mu.gc.is_marked(child_h), "an object referenced by a reachable object is reachable");
+    assert!(
+        mu.gc.is_marked(live_h),
+        "an object named by a global is reachable"
+    );
+    assert!(
+        mu.gc.is_marked(child_h),
+        "an object referenced by a reachable object is reachable"
+    );
     assert!(!mu.gc.is_marked(garbage_h), "nothing refers to this object");
 }
 
@@ -67,8 +105,14 @@ fn objects_reachable_only_through_a_global_are_marked() {
     mu.unwind(base);
 
     mu.collect();
-    assert!(!mu.gc.is_freed(kept_h), "a global is a root and what it names must survive");
-    assert!(!mu.gc.is_freed(deep_h), "so must what that object refers to");
+    assert!(
+        !mu.gc.is_freed(kept_h),
+        "a global is a root and what it names must survive"
+    );
+    assert!(
+        !mu.gc.is_freed(deep_h),
+        "so must what that object refers to"
+    );
     mu.assert_consistent();
 }
 
@@ -119,7 +163,10 @@ fn cycles_need_no_special_handling() {
     mu.unwind(base);
     mu.collect();
 
-    assert!(mu.gc.is_freed(ring_h), "the ring is unreachable, so it is garbage");
+    assert!(
+        mu.gc.is_freed(ring_h),
+        "the ring is unreachable, so it is garbage"
+    );
     assert_eq!(
         mu.used_bytes(),
         settled,

@@ -68,6 +68,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "gc-mod07"
+version = "0.1.0"
+dependencies = [
+ "gc-core",
+ "gc-harness",
+ "gc-workloads",
+]
+
+[[package]]
+name = "gc-mod08"
+version = "0.1.0"
+dependencies = [
+ "gc-core",
+ "gc-harness",
+ "gc-workloads",
+]
+
+[[package]]
 name = "gc-workloads"
 version = "0.1.0"
 dependencies = [

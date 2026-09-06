@@ -38,7 +38,9 @@ fn freed_blocks_are_reused_and_coalesced() {
     assert_eq!(s.free_block_count(), 0);
     s.validate().unwrap();
 
-    let big = s.alloc(0, 4096 - HEADER_SIZE).expect("the whole region is available again");
+    let big = s
+        .alloc(0, 4096 - HEADER_SIZE)
+        .expect("the whole region is available again");
     assert_eq!(big.addr(), 0);
 }
 
@@ -52,8 +54,16 @@ fn interior_holes_are_reused_without_growing_the_heap() {
 
     s.free(b);
     let replacement = s.alloc(0, 48).unwrap();
-    assert_eq!(replacement.addr(), b.addr(), "the hole should be reused exactly");
-    assert_eq!(s.bump_pointer(), high_water, "no fresh memory should have been taken");
+    assert_eq!(
+        replacement.addr(),
+        b.addr(),
+        "the hole should be reused exactly"
+    );
+    assert_eq!(
+        s.bump_pointer(),
+        high_water,
+        "no fresh memory should have been taken"
+    );
     assert_ne!(replacement.addr(), a.addr());
     s.validate().unwrap();
 }
@@ -67,7 +77,11 @@ fn splitting_a_large_block_leaves_the_remainder_usable() {
     s.free(big);
 
     let small = s.alloc(0, 48).unwrap();
-    assert_eq!(small.addr(), big.addr(), "the small object goes at the front of the hole");
+    assert_eq!(
+        small.addr(),
+        big.addr(),
+        "the small object goes at the front of the hole"
+    );
     assert_eq!(s.free_block_count(), 1, "the rest of the hole stays free");
     assert_eq!(s.largest_free_block(), 512 - 64);
     s.validate().unwrap();
@@ -76,14 +90,20 @@ fn splitting_a_large_block_leaves_the_remainder_usable() {
 #[test]
 fn the_heap_walk_covers_free_and_live_blocks() {
     let mut s = FreeListSpace::new(16 << 10);
-    let hs: Vec<Handle> = (0..40).map(|i| s.alloc(0, 48 + (i % 3) * 16).unwrap()).collect();
+    let hs: Vec<Handle> = (0..40)
+        .map(|i| s.alloc(0, 48 + (i % 3) * 16).unwrap())
+        .collect();
     for (i, &h) in hs.iter().enumerate() {
         if i % 3 == 0 {
             s.free(h);
         }
     }
     let walked: u32 = s.walk().map(|h| s.heap().size(h)).sum();
-    assert_eq!(walked, s.bump_pointer(), "the walk should cover every byte below the bump");
+    assert_eq!(
+        walked,
+        s.bump_pointer(),
+        "the walk should cover every byte below the bump"
+    );
     assert_eq!(s.live_blocks().len(), 40 - hs.len().div_ceil(3));
     s.validate().unwrap();
 }

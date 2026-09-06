@@ -91,7 +91,10 @@ impl Allocator {
     }
 
     pub fn with_policy(capacity: usize, policy: FitPolicy) -> Allocator {
-        Allocator { policy, ..Allocator::new(capacity) }
+        Allocator {
+            policy,
+            ..Allocator::new(capacity)
+        }
     }
 
     pub fn heap(&self) -> &Heap {
@@ -133,7 +136,11 @@ impl Allocator {
     /// The gap between this and [`Allocator::free_bytes`] is a direct measure
     /// of how fragmented the heap has become.
     pub fn largest_free_block(&self) -> u32 {
-        self.free.iter().map(|&b| self.heap.size(b)).max().unwrap_or(0)
+        self.free
+            .iter()
+            .map(|&b| self.heap.size(b))
+            .max()
+            .unwrap_or(0)
     }
     /// Free block addresses, in address order.
     pub fn free_blocks(&self) -> &[Handle] {
@@ -266,7 +273,7 @@ impl Allocator {
         while at < self.bump {
             let h = Handle(at);
             let size = self.heap.size(h);
-            if size < gc_core::heap::HEADER_SIZE || size % gc_core::heap::ALIGN != 0 {
+            if size < gc_core::heap::HEADER_SIZE || !size.is_multiple_of(gc_core::heap::ALIGN) {
                 return Err(format!(
                     "block {blocks} at {at:#x} claims size {size}; the walk cannot continue \
                      (sizes must be a non-zero multiple of {})",
@@ -330,6 +337,9 @@ impl Allocator {
 
     /// Every live block, in address order.
     pub fn live_blocks(&self) -> Vec<Handle> {
-        self.heap.walk(0, self.bump).filter(|&h| !self.heap.flag(h, FLAG_FREE)).collect()
+        self.heap
+            .walk(0, self.bump)
+            .filter(|&h| !self.heap.flag(h, FLAG_FREE))
+            .collect()
     }
 }

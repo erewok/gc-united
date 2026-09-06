@@ -26,7 +26,10 @@ pub struct Mutator<C: Collector> {
 
 impl<C: Collector> Mutator<C> {
     pub fn new(gc: C) -> Mutator<C> {
-        Mutator { gc, model: Model::new() }
+        Mutator {
+            gc,
+            model: Model::new(),
+        }
     }
 
     /// Allocate an object with `nrefs` reference slots and `extra` bytes of
@@ -57,7 +60,8 @@ impl<C: Collector> Mutator<C> {
         let (p, c) = (self.handle(parent), self.handle(child));
         self.gc.write_field(p, i, c);
         let (pid, cid) = (self.id(parent), self.id(child));
-        self.model.store(pid.expect("store into a null slot"), i, cid);
+        self.model
+            .store(pid.expect("store into a null slot"), i, cid);
     }
 
     /// Null out reference slot `i` of `parent`.
@@ -173,7 +177,9 @@ impl<C: Collector> Mutator<C> {
     /// Write scalar word `index` of the object's user payload.
     pub fn write_u64(&mut self, slot: RootSlot, index: u32, v: u64) {
         let h = self.handle(slot);
-        self.gc.heap_mut().set_data_u64(h, STAMP_BYTES + 8 * index, v);
+        self.gc
+            .heap_mut()
+            .set_data_u64(h, STAMP_BYTES + 8 * index, v);
     }
 
     /// Read scalar word `index` of the object's user payload.

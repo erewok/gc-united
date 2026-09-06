@@ -18,16 +18,46 @@ fn mk(capacity: usize) -> RefCount {
 
 // ---- general conformance --------------------------------------------------
 
-#[test] fn allocates_and_reads_back() { checks::allocates_and_reads_back(mk); }
-#[test] fn retains_reachable() { checks::retains_reachable(mk); }
-#[test] fn globals_are_roots() { checks::globals_are_roots(mk); }
-#[test] fn reclaims_unreachable() { checks::reclaims_unreachable(mk); }
-#[test] fn preserves_sharing() { checks::preserves_sharing(mk); }
-#[test] fn stable_across_repeated_collections() { checks::stable_across_repeated_collections(mk); }
-#[test] fn runs_in_a_small_heap() { checks::runs_in_a_small_heap(mk); }
-#[test] fn survives_root_churn() { checks::survives_root_churn(mk); }
-#[test] fn reports_its_work() { checks::reports_its_work(mk); }
-#[test] fn traces_deep_structures() { checks::traces_deep_structures(mk); }
+#[test]
+fn allocates_and_reads_back() {
+    checks::allocates_and_reads_back(mk);
+}
+#[test]
+fn retains_reachable() {
+    checks::retains_reachable(mk);
+}
+#[test]
+fn globals_are_roots() {
+    checks::globals_are_roots(mk);
+}
+#[test]
+fn reclaims_unreachable() {
+    checks::reclaims_unreachable(mk);
+}
+#[test]
+fn preserves_sharing() {
+    checks::preserves_sharing(mk);
+}
+#[test]
+fn stable_across_repeated_collections() {
+    checks::stable_across_repeated_collections(mk);
+}
+#[test]
+fn runs_in_a_small_heap() {
+    checks::runs_in_a_small_heap(mk);
+}
+#[test]
+fn survives_root_churn() {
+    checks::survives_root_churn(mk);
+}
+#[test]
+fn reports_its_work() {
+    checks::reports_its_work(mk);
+}
+#[test]
+fn traces_deep_structures() {
+    checks::traces_deep_structures(mk);
+}
 
 // ---- counting ------------------------------------------------------------
 
@@ -38,7 +68,11 @@ fn a_count_equals_the_number_of_references() {
 
     let child = mu.alloc(0, 8);
     let child_h = mu.handle(child);
-    assert_eq!(mu.gc.rc_of(child_h), 1, "a freshly allocated, rooted object has one reference");
+    assert_eq!(
+        mu.gc.rc_of(child_h),
+        1,
+        "a freshly allocated, rooted object has one reference"
+    );
 
     let a = mu.alloc(2, 8);
     let b = mu.alloc(2, 8);
@@ -50,7 +84,11 @@ fn a_count_equals_the_number_of_references() {
     assert_eq!(mu.gc.rc_of(child_h), 4, "two fields of b both count");
 
     mu.store_null(b, 1);
-    assert_eq!(mu.gc.rc_of(child_h), 3, "clearing a field drops a reference");
+    assert_eq!(
+        mu.gc.rc_of(child_h),
+        3,
+        "clearing a field drops a reference"
+    );
 
     mu.unwind(base);
     assert!(
@@ -76,7 +114,11 @@ fn storing_a_fields_current_value_back_is_safe() {
     let holder_h = mu.handle(holder);
     let child_h = mu.handle(child);
     mu.unwind(base + 1);
-    assert_eq!(mu.gc.rc_of(child_h), 1, "the field is now the only reference to the child");
+    assert_eq!(
+        mu.gc.rc_of(child_h),
+        1,
+        "the field is now the only reference to the child"
+    );
 
     // Straight through the collector, with no root protecting the value.
     mu.gc.write_field(holder_h, 0, child_h);
@@ -197,7 +239,7 @@ fn a_shared_child_outlives_its_first_parent() {
     let base = mu.root_depth();
 
     let shared = mu.alloc(0, 8);
-    mu.write_u64(shared, 0, 0x5EA1_ED);
+    mu.write_u64(shared, 0, 0x5E_A1ED);
     let shared_h = mu.handle(shared);
 
     let one = mu.alloc(1, 8);
@@ -207,13 +249,20 @@ fn a_shared_child_outlives_its_first_parent() {
     mu.set_global("two", two);
     mu.unwind(base);
 
-    assert!(!mu.gc.is_freed(shared_h), "the second parent still refers to the shared child");
+    assert!(
+        !mu.gc.is_freed(shared_h),
+        "the second parent still refers to the shared child"
+    );
     assert_eq!(mu.gc.rc_of(shared_h), 1, "exactly one reference remains");
     let _ = one;
 
     let two = mu.global("two");
     let child = mu.load(two, 0);
-    assert_eq!(mu.read_u64(child, 0), 0x5EA1_ED, "the shared child was corrupted");
+    assert_eq!(
+        mu.read_u64(child, 0),
+        0x5E_A1ED,
+        "the shared child was corrupted"
+    );
     mu.unwind(base);
     mu.assert_consistent();
 }
@@ -247,7 +296,11 @@ fn cycles_are_not_reclaimed() {
         occupied,
         "the ring's memory is still held, which is the leak module 3 addresses"
     );
-    assert_eq!(mu.gc.rc_of(ring_h), 1, "the previous node in the ring still refers to it");
+    assert_eq!(
+        mu.gc.rc_of(ring_h),
+        1,
+        "the previous node in the ring still refers to it"
+    );
 }
 
 #[test]
@@ -258,9 +311,17 @@ fn a_self_reference_leaks_too() {
     let me = mu.alloc(1, 8);
     let me_h: Handle = mu.handle(me);
     mu.store(me, 0, me);
-    assert_eq!(mu.gc.rc_of(me_h), 2, "one reference from the root, one from itself");
+    assert_eq!(
+        mu.gc.rc_of(me_h),
+        2,
+        "one reference from the root, one from itself"
+    );
 
     mu.unwind(base);
-    assert_eq!(mu.gc.rc_of(me_h), 1, "the object's reference to itself keeps it alive");
+    assert_eq!(
+        mu.gc.rc_of(me_h),
+        1,
+        "the object's reference to itself keeps it alive"
+    );
     assert!(!mu.gc.is_freed(me_h));
 }

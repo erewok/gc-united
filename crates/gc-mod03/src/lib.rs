@@ -166,7 +166,10 @@ impl CycleCollector {
 
         while let Some(obj) = self.pending.pop() {
             let rc = self.space.heap().rc(obj);
-            assert!(rc > 0, "{obj:?} was released while its count was already zero");
+            assert!(
+                rc > 0,
+                "{obj:?} was released while its count was already zero"
+            );
             self.space.heap_mut().set_rc(obj, rc - 1);
 
             if rc == 1 {

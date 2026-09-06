@@ -105,12 +105,17 @@ impl Heap {
     /// Create an arena of exactly `capacity` bytes, zero-filled.
     pub fn new(capacity: usize) -> Heap {
         assert!(capacity >= HEADER_SIZE as usize, "heap too small");
-        assert!(capacity < NULL_ADDR as usize, "heap must be addressable by u32");
         assert!(
-            capacity % ALIGN as usize == 0,
+            capacity < NULL_ADDR as usize,
+            "heap must be addressable by u32"
+        );
+        assert!(
+            capacity.is_multiple_of(ALIGN as usize),
             "heap capacity must be a multiple of {ALIGN} bytes"
         );
-        Heap { bytes: vec![0u8; capacity] }
+        Heap {
+            bytes: vec![0u8; capacity],
+        }
     }
 
     /// Total bytes in the arena.
@@ -132,7 +137,7 @@ impl Heap {
     pub fn emplace(&mut self, at: u32, nrefs: u16, ndata: u32) -> Handle {
         let size = Self::size_for(nrefs, ndata);
         assert!(
-            at % ALIGN == 0,
+            at.is_multiple_of(ALIGN),
             "emplace at unaligned address {at:#x}"
         );
         assert!(
@@ -160,8 +165,14 @@ impl Heap {
     /// size, free blocks included; this is how a hole announces how far the
     /// next object is.
     pub fn emplace_block(&mut self, at: u32, size: u32) -> Handle {
-        assert!(at % ALIGN == 0, "block at unaligned address {at:#x}");
-        assert!(size >= HEADER_SIZE && size % ALIGN == 0, "bad block size {size}");
+        assert!(
+            at.is_multiple_of(ALIGN),
+            "block at unaligned address {at:#x}"
+        );
+        assert!(
+            size >= HEADER_SIZE && size.is_multiple_of(ALIGN),
+            "bad block size {size}"
+        );
         assert!(
             at.saturating_add(size) <= self.capacity(),
             "block of {size} bytes at {at:#x} runs past the end of the heap"
@@ -181,12 +192,16 @@ impl Heap {
     /// a sliding compactor.
     pub fn relocate(&mut self, from: Handle, to: u32) -> Handle {
         let size = self.size(from) as usize;
-        assert!(to % ALIGN == 0, "relocate to unaligned address {to:#x}");
+        assert!(
+            to.is_multiple_of(ALIGN),
+            "relocate to unaligned address {to:#x}"
+        );
         assert!(
             to as usize + size <= self.bytes.len(),
             "relocate of {size} bytes to {to:#x} runs past the end of the heap"
         );
-        self.bytes.copy_within(from.0 as usize..from.0 as usize + size, to as usize);
+        self.bytes
+            .copy_within(from.0 as usize..from.0 as usize + size, to as usize);
         Handle(to)
     }
 
@@ -317,7 +332,10 @@ impl Heap {
     }
     /// Every non-null reference slot of `h`.
     pub fn children(&self, h: Handle) -> Vec<Handle> {
-        (0..self.nrefs(h)).map(|i| self.field(h, i)).filter(|c| !c.is_null()).collect()
+        (0..self.nrefs(h))
+            .map(|i| self.field(h, i))
+            .filter(|c| !c.is_null())
+            .collect()
     }
 
     /// Byte offset at which the scalar payload of `h` starts.
@@ -367,16 +385,20 @@ impl Heap {
     /// Every object in the range must carry a valid size in its header; a zero
     /// size would not advance and is reported as an error rather than hanging.
     pub fn walk(&self, from: u32, to: u32) -> Walk<'_> {
-        Walk { heap: self, at: from, end: to }
+        Walk {
+            heap: self,
+            at: from,
+            end: to,
+        }
     }
 
     /// True if `h` addresses a plausibly-shaped object inside the arena.
     pub fn in_bounds(&self, h: Handle) -> bool {
-        if h.is_null() || h.0 % ALIGN != 0 || h.0 + HEADER_SIZE > self.capacity() {
+        if h.is_null() || !h.0.is_multiple_of(ALIGN) || h.0 + HEADER_SIZE > self.capacity() {
             return false;
         }
         let size = self.u32(h.0 + OFF_SIZE);
-        size >= HEADER_SIZE && size % ALIGN == 0 && h.0 + size <= self.capacity()
+        size >= HEADER_SIZE && size.is_multiple_of(ALIGN) && h.0 + size <= self.capacity()
     }
 
     // ---- raw little-endian access ----------------------------------------
@@ -424,7 +446,7 @@ impl Iterator for Walk<'_> {
         let h = Handle(self.at);
         let size = self.heap.size(h);
         assert!(
-            size >= HEADER_SIZE && size % ALIGN == 0,
+            size >= HEADER_SIZE && size.is_multiple_of(ALIGN),
             "walking the heap hit a block at {:#x} whose header claims size {size}; \
              a linear walk needs every block, live or free, to carry its true size",
             self.at

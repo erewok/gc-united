@@ -15,10 +15,13 @@ use gc_core::collector::Collector;
 use gc_core::mutator::Mutator;
 use gc_core::stats::GcStats;
 
+/// A candidate program: run it against a collector, get its checksum back.
+pub type Workload<C> = Box<dyn Fn(&mut Mutator<C>) -> u64>;
+
 pub struct WorkloadSpec<C: Collector> {
     pub name: &'static str,
     pub heap_bytes: usize,
-    pub run: Box<dyn Fn(&mut Mutator<C>) -> u64>,
+    pub run: Workload<C>,
 }
 
 /// Describe one benchmark: a name, the heap it runs in, and the program.
@@ -27,7 +30,11 @@ pub fn spec<C: Collector>(
     heap_bytes: usize,
     run: impl Fn(&mut Mutator<C>) -> u64 + 'static,
 ) -> WorkloadSpec<C> {
-    WorkloadSpec { name, heap_bytes, run: Box::new(run) }
+    WorkloadSpec {
+        name,
+        heap_bytes,
+        run: Box::new(run),
+    }
 }
 
 pub struct BenchRow {
@@ -84,7 +91,15 @@ pub fn print_table(collector: &str, rows: &[BenchRow]) -> bool {
     println!();
     println!(
         "  {:<16} {:>9} {:>10} {:>9} {:>6} {:>9} {:>6} {:>11} {:>10}",
-        "workload", "wall ms", "alloc MiB", "objects", "GCs", "in gc ms", "gc %", "max pause", "live MiB"
+        "workload",
+        "wall ms",
+        "alloc MiB",
+        "objects",
+        "GCs",
+        "in gc ms",
+        "gc %",
+        "max pause",
+        "live MiB"
     );
     println!("  {}", "-".repeat(96));
 
@@ -92,7 +107,11 @@ pub fn print_table(collector: &str, rows: &[BenchRow]) -> bool {
     for r in rows {
         let wall_ms = r.wall.as_secs_f64() * 1e3;
         let gc_ms = r.stats.gc_time.as_secs_f64() * 1e3;
-        let gc_pct = if wall_ms > 0.0 { gc_ms / wall_ms * 100.0 } else { 0.0 };
+        let gc_pct = if wall_ms > 0.0 {
+            gc_ms / wall_ms * 100.0
+        } else {
+            0.0
+        };
         let pause = r.stats.max_pause;
         let pause_str = if pause.as_micros() < 10_000 {
             format!("{} us", pause.as_micros())

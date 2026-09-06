@@ -23,17 +23,50 @@ fn mk2(capacity: usize) -> SemiSpace {
 
 // ---- general conformance --------------------------------------------------
 
-#[test] fn allocates_and_reads_back() { checks::allocates_and_reads_back(mk2); }
-#[test] fn retains_reachable() { checks::retains_reachable(mk2); }
-#[test] fn globals_are_roots() { checks::globals_are_roots(mk2); }
-#[test] fn reclaims_unreachable() { checks::reclaims_unreachable(mk2); }
-#[test] fn preserves_sharing() { checks::preserves_sharing(mk2); }
-#[test] fn collects_cycles() { checks::collects_cycles(mk2); }
-#[test] fn stable_across_repeated_collections() { checks::stable_across_repeated_collections(mk2); }
-#[test] fn runs_in_a_small_heap() { checks::runs_in_a_small_heap(mk2); }
-#[test] fn survives_root_churn() { checks::survives_root_churn(mk2); }
-#[test] fn reports_its_work() { checks::reports_its_work(mk2); }
-#[test] fn traces_deep_structures() { checks::traces_deep_structures(mk2); }
+#[test]
+fn allocates_and_reads_back() {
+    checks::allocates_and_reads_back(mk2);
+}
+#[test]
+fn retains_reachable() {
+    checks::retains_reachable(mk2);
+}
+#[test]
+fn globals_are_roots() {
+    checks::globals_are_roots(mk2);
+}
+#[test]
+fn reclaims_unreachable() {
+    checks::reclaims_unreachable(mk2);
+}
+#[test]
+fn preserves_sharing() {
+    checks::preserves_sharing(mk2);
+}
+#[test]
+fn collects_cycles() {
+    checks::collects_cycles(mk2);
+}
+#[test]
+fn stable_across_repeated_collections() {
+    checks::stable_across_repeated_collections(mk2);
+}
+#[test]
+fn runs_in_a_small_heap() {
+    checks::runs_in_a_small_heap(mk2);
+}
+#[test]
+fn survives_root_churn() {
+    checks::survives_root_churn(mk2);
+}
+#[test]
+fn reports_its_work() {
+    checks::reports_its_work(mk2);
+}
+#[test]
+fn traces_deep_structures() {
+    checks::traces_deep_structures(mk2);
+}
 
 // ---- the two halves -------------------------------------------------------
 
@@ -58,7 +91,11 @@ fn collection_swaps_the_halves() {
     );
 
     let kept = mu.global("kept");
-    assert_eq!(mu.read_u64(kept, 0), 0xA11FE, "the survivor's payload should have come with it");
+    assert_eq!(
+        mu.read_u64(kept, 0),
+        0xA11FE,
+        "the survivor's payload should have come with it"
+    );
     assert!(
         mu.gc.in_current_space(mu.handle(kept)),
         "the survivor should now live in the half being allocated into"
@@ -66,7 +103,11 @@ fn collection_swaps_the_halves() {
     mu.unwind(base);
 
     mu.collect();
-    assert_eq!(mu.gc.current_space(), first_space, "a second collection swaps back");
+    assert_eq!(
+        mu.gc.current_space(),
+        first_space,
+        "a second collection swaps back"
+    );
 }
 
 #[test]
@@ -125,7 +166,7 @@ fn a_shared_object_is_copied_once() {
     let base = mu.root_depth();
 
     let shared = mu.alloc(0, 40);
-    mu.write_u64(shared, 0, 0x5EA1_ED);
+    mu.write_u64(shared, 0, 0x5E_A1ED);
     let one = mu.alloc(1, 8);
     let two = mu.alloc(1, 8);
     let three = mu.alloc(1, 8);
@@ -307,6 +348,10 @@ fn a_collection_that_saves_nothing_costs_nothing() {
         0,
         "nothing was reachable, so nothing should have been copied"
     );
-    assert_eq!(mu.used_bytes(), 0, "the new half should be completely empty");
+    assert_eq!(
+        mu.used_bytes(),
+        0,
+        "the new half should be completely empty"
+    );
     assert!(mu.gc.empty_collections() > 0);
 }

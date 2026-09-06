@@ -135,7 +135,12 @@ impl MarkSweep {
     /// Tracing starts here, so anything missing from this list is invisible to
     /// the collector however reachable the program considers it.
     fn root_set(&self) -> Vec<Handle> {
-        self.roots.stack_snapshot().iter().copied().filter(|h| !h.is_null()).collect()
+        self.roots
+            .stack_snapshot()
+            .iter()
+            .copied()
+            .filter(|h| !h.is_null())
+            .collect()
     }
 
     /// Set the mark bit on every object reachable from the roots.
@@ -249,7 +254,10 @@ impl Collector for MarkSweep {
         // collection cost stays proportional to allocation rather than to how
         // often the program happens to call this.
         let live = self.space.used_bytes();
-        self.threshold = live.saturating_mul(2).max(MIN_THRESHOLD).min(self.space.capacity());
+        self.threshold = live
+            .saturating_mul(2)
+            .max(MIN_THRESHOLD)
+            .min(self.space.capacity());
 
         let capacity = self.space.capacity();
         let reclaimed = before.saturating_sub(live);

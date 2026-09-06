@@ -126,14 +126,26 @@ fn main() {
     println!();
     println!(
         "  {:<14} {:>6} {:>9} {:>11} {:>10} {:>9} {:>10} {:>8} {:>8} {:>8}",
-        "workload", "fit", "wall ms", "M allocs/s", "refused", "peak MiB", "unfragm.", "splits",
-        "merges", "reused"
+        "workload",
+        "fit",
+        "wall ms",
+        "M allocs/s",
+        "refused",
+        "peak MiB",
+        "unfragm.",
+        "splits",
+        "merges",
+        "reused"
     );
     println!("  {}", "-".repeat(108));
 
     for r in &rows {
         let ms = r.elapsed.as_secs_f64() * 1e3;
-        let rate = if ms > 0.0 { r.allocations as f64 / (ms * 1e3) } else { 0.0 };
+        let rate = if ms > 0.0 {
+            r.allocations as f64 / (ms * 1e3)
+        } else {
+            0.0
+        };
         let unfragmented = if r.free_bytes > 0 {
             r.largest_free as f64 / r.free_bytes as f64 * 100.0
         } else {

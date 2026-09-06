@@ -55,7 +55,11 @@ impl FreeListSpace {
         self.free.len()
     }
     pub fn largest_free_block(&self) -> u32 {
-        self.free.iter().map(|&b| self.heap.size(b)).max().unwrap_or(0)
+        self.free
+            .iter()
+            .map(|&b| self.heap.size(b))
+            .max()
+            .unwrap_or(0)
     }
     pub fn is_free(&self, h: Handle) -> bool {
         self.heap.flag(h, FLAG_FREE)
@@ -165,7 +169,10 @@ impl FreeListSpace {
     /// Total size of every live block, computed by walking rather than from
     /// the space's own bookkeeping.
     pub fn walk_live_bytes(&self) -> u32 {
-        self.walk().filter(|&h| !self.is_free(h)).map(|h| self.heap.size(h)).sum()
+        self.walk()
+            .filter(|&h| !self.is_free(h))
+            .map(|h| self.heap.size(h))
+            .sum()
     }
 
     /// Check that the heap is walkable and the free list agrees with it.
@@ -175,7 +182,7 @@ impl FreeListSpace {
         while at < self.bump {
             let h = Handle(at);
             let size = self.heap.size(h);
-            if size < HEADER_SIZE || size % ALIGN != 0 || at + size > self.bump {
+            if size < HEADER_SIZE || !size.is_multiple_of(ALIGN) || at + size > self.bump {
                 return Err(format!(
                     "block at {at:#x} claims size {size}; the walk cannot continue"
                 ));

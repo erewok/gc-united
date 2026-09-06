@@ -34,8 +34,12 @@ fn main() {
             spec("binary_trees", HEAP, |mu| wl::binary_trees(mu, 14)),
             spec("list_churn", HEAP, |mu| wl::list_churn(mu, 2000, 40, 64, 1)),
             spec("shared_dag", HEAP, |mu| wl::shared_dag(mu, 20_000, 32, 2)),
-            spec("fragmentation", HEAP, |mu| wl::fragmentation(mu, 40_000, 48, 3)),
-            spec("old_to_young", HEAP, |mu| wl::old_to_young(mu, 32, 40_000, 4)),
+            spec("fragmentation", HEAP, |mu| {
+                wl::fragmentation(mu, 40_000, 48, 3)
+            }),
+            spec("old_to_young", HEAP, |mu| {
+                wl::old_to_young(mu, 32, 40_000, 4)
+            }),
             spec("cyclic", HEAP, |mu| wl::cyclic_graph(mu, 20_000, 24, 5)),
             spec("deep_chain", 24 << 20, |mu| wl::deep_chain(mu, 150_000)),
         ],

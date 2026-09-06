@@ -18,17 +18,50 @@ fn mk(capacity: usize) -> CycleCollector {
 
 // ---- general conformance --------------------------------------------------
 
-#[test] fn allocates_and_reads_back() { checks::allocates_and_reads_back(mk); }
-#[test] fn retains_reachable() { checks::retains_reachable(mk); }
-#[test] fn globals_are_roots() { checks::globals_are_roots(mk); }
-#[test] fn reclaims_unreachable() { checks::reclaims_unreachable(mk); }
-#[test] fn preserves_sharing() { checks::preserves_sharing(mk); }
-#[test] fn collects_cycles() { checks::collects_cycles(mk); }
-#[test] fn stable_across_repeated_collections() { checks::stable_across_repeated_collections(mk); }
-#[test] fn runs_in_a_small_heap() { checks::runs_in_a_small_heap(mk); }
-#[test] fn survives_root_churn() { checks::survives_root_churn(mk); }
-#[test] fn reports_its_work() { checks::reports_its_work(mk); }
-#[test] fn traces_deep_structures() { checks::traces_deep_structures(mk); }
+#[test]
+fn allocates_and_reads_back() {
+    checks::allocates_and_reads_back(mk);
+}
+#[test]
+fn retains_reachable() {
+    checks::retains_reachable(mk);
+}
+#[test]
+fn globals_are_roots() {
+    checks::globals_are_roots(mk);
+}
+#[test]
+fn reclaims_unreachable() {
+    checks::reclaims_unreachable(mk);
+}
+#[test]
+fn preserves_sharing() {
+    checks::preserves_sharing(mk);
+}
+#[test]
+fn collects_cycles() {
+    checks::collects_cycles(mk);
+}
+#[test]
+fn stable_across_repeated_collections() {
+    checks::stable_across_repeated_collections(mk);
+}
+#[test]
+fn runs_in_a_small_heap() {
+    checks::runs_in_a_small_heap(mk);
+}
+#[test]
+fn survives_root_churn() {
+    checks::survives_root_churn(mk);
+}
+#[test]
+fn reports_its_work() {
+    checks::reports_its_work(mk);
+}
+#[test]
+fn traces_deep_structures() {
+    checks::traces_deep_structures(mk);
+}
 
 // ---- reference counting still works ---------------------------------------
 
@@ -47,7 +80,11 @@ fn acyclic_garbage_still_dies_immediately() {
         settled,
         "an acyclic tree was abandoned; it should be gone without any collection being run"
     );
-    assert_eq!(mu.stats().collections, 0, "no collection should have been needed");
+    assert_eq!(
+        mu.stats().collections,
+        0,
+        "no collection should have been needed"
+    );
 }
 
 // ---- finding cycles -------------------------------------------------------
@@ -64,17 +101,28 @@ fn an_abandoned_ring_is_collected() {
     mu.unwind(base);
 
     assert!(!mu.gc.is_freed(ring_h), "counting alone cannot free a ring");
-    assert_eq!(mu.gc.color_of(ring_h), PURPLE, "the ring's head is a candidate");
+    assert_eq!(
+        mu.gc.color_of(ring_h),
+        PURPLE,
+        "the ring's head is a candidate"
+    );
 
     mu.collect();
-    assert!(mu.gc.is_freed(ring_h), "the ring is unreachable and should have been collected");
+    assert!(
+        mu.gc.is_freed(ring_h),
+        "the ring is unreachable and should have been collected"
+    );
     assert_eq!(
         mu.used_bytes(),
         settled,
         "all 64 nodes of the ring should be gone; {} bytes remain",
         mu.used_bytes() - settled
     );
-    assert_eq!(mu.gc.cycles_collected(), 64, "every node of the ring belonged to the cycle");
+    assert_eq!(
+        mu.gc.cycles_collected(),
+        64,
+        "every node of the ring belonged to the cycle"
+    );
 }
 
 #[test]
@@ -89,7 +137,10 @@ fn a_self_reference_is_a_cycle() {
 
     assert!(!mu.gc.is_freed(me_h));
     mu.collect();
-    assert!(mu.gc.is_freed(me_h), "an object referring only to itself is garbage");
+    assert!(
+        mu.gc.is_freed(me_h),
+        "an object referring only to itself is garbage"
+    );
 }
 
 #[test]
@@ -133,7 +184,10 @@ fn two_rings_sharing_a_node_are_both_collected() {
     mu.collect();
 
     for (name, h) in ["shared", "a", "b"].iter().zip(handles) {
-        assert!(mu.gc.is_freed(h), "{name} is part of an unreachable cycle and should be gone");
+        assert!(
+            mu.gc.is_freed(h),
+            "{name} is part of an unreachable cycle and should be gone"
+        );
     }
     assert_eq!(mu.used_bytes(), settled);
 }
@@ -154,12 +208,19 @@ fn a_ring_referenced_from_outside_survives_untouched() {
     // Drop the local root so the head becomes a suspect while remaining
     // genuinely reachable, then record every count as it stands going in.
     mu.unwind(base);
-    assert_eq!(mu.gc.color_of(ring_h), PURPLE, "the head should be filed as a suspect");
+    assert_eq!(
+        mu.gc.color_of(ring_h),
+        PURPLE,
+        "the head should be filed as a suspect"
+    );
     let counts_before = ring_counts(&mut mu, ring_h, 32);
 
     mu.collect();
 
-    assert!(!mu.gc.is_freed(ring_h), "the ring is still named by a global");
+    assert!(
+        !mu.gc.is_freed(ring_h),
+        "the ring is still named by a global"
+    );
     assert_eq!(
         mu.used_bytes(),
         occupied,
@@ -171,7 +232,11 @@ fn a_ring_referenced_from_outside_survives_untouched() {
         "trial deletion took references away from every node in the ring and the collection \
          decided the ring was live; every one of those references has to be put back"
     );
-    assert_eq!(mu.gc.color_of(ring_h), BLACK, "a survivor is no longer a suspect");
+    assert_eq!(
+        mu.gc.color_of(ring_h),
+        BLACK,
+        "a survivor is no longer a suspect"
+    );
     mu.assert_consistent();
 }
 
@@ -194,7 +259,10 @@ fn a_cycle_hanging_off_a_live_object_survives() {
     mu.collect();
 
     for (name, h) in ["anchor", "a", "b"].iter().zip(handles) {
-        assert!(!mu.gc.is_freed(h), "{name} is reachable from a global and must survive");
+        assert!(
+            !mu.gc.is_freed(h),
+            "{name} is reachable from a global and must survive"
+        );
     }
     assert_eq!(mu.used_bytes(), occupied, "nothing here is garbage");
     mu.assert_consistent();
@@ -237,11 +305,19 @@ fn a_suspect_that_is_cleared_can_be_suspected_again() {
     mu.set_global("obj", obj);
     let obj_h = mu.handle(obj);
     mu.unwind(base);
-    assert_eq!(mu.gc.color_of(obj_h), PURPLE, "dropping the local root files it as a suspect");
+    assert_eq!(
+        mu.gc.color_of(obj_h),
+        PURPLE,
+        "dropping the local root files it as a suspect"
+    );
 
     // Taking a fresh reference clears the suspicion before the collection runs.
     let held = mu.global("obj");
-    assert_eq!(mu.gc.color_of(obj_h), BLACK, "gaining a reference clears the suspicion");
+    assert_eq!(
+        mu.gc.color_of(obj_h),
+        BLACK,
+        "gaining a reference clears the suspicion"
+    );
     mu.collect();
     mu.unwind(base);
     let _ = held;
@@ -313,7 +389,11 @@ fn only_objects_that_lost_a_reference_become_candidates() {
 }
 
 /// Reference counts of every node in a ring, starting at `head`.
-fn ring_counts(mu: &mut Mutator<CycleCollector>, head: gc_core::heap::Handle, len: u32) -> Vec<u32> {
+fn ring_counts(
+    mu: &mut Mutator<CycleCollector>,
+    head: gc_core::heap::Handle,
+    len: u32,
+) -> Vec<u32> {
     let mut counts = Vec::with_capacity(len as usize);
     let mut cur = head;
     for _ in 0..len {

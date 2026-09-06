@@ -2,11 +2,11 @@
 
 A garbage collection course in Rust, taught by debugging.
 
+Note: almost everything in here was contributed by Claude code (except for this sentence and some others). This is part of my own rumination on the idea that I might be able to get Claude to help me recover the "productive failures" I've experienced in my career while trying to learn stuff. In short, what if Claude could produce broken or partial things so that I can have some friction trying to fix these? Would this result in learning and retention for _me_ (I don't want to ship code and not understand it, but it's looking like a pretty common approach...). So treat this whole thing as an experiment. It's not meant to be some huge celebration of LLMs building stuff: instead, it's _intentionally_ broken in order to pursue _human learning objectives_ (my own).
+
 Every module in `crates/` is a working-ish garbage collector that does **not**
 pass its tests. Some functions are unimplemented and panic with `todo!()`;
-elsewhere the code is complete, plausible, and wrong. Your job is to make the
-tests pass. There is no solutions branch and no answer key: the test suite is
-the only specification, and reading it is part of the work.
+elsewhere the code is complete, plausible, and just plain incorrect! Our job is to make the tests pass.
 
 ```
 just list        the modules
@@ -30,24 +30,22 @@ of what works and what does not after every change.
 
 Open `crates/gc-modNN/src/lib.rs`. The module documentation at the top explains
 the paradigm, what the collector is supposed to do, and which functions are
-unimplemented. It does not tell you where the bugs are.
+unimplemented. We have happily left some fun bugs in these modules also!
 
-Run the tests. Read the failures — they are written to describe the *state of
-the heap*, not the line of code at fault:
+Suggested flow: run the tests, read the failures, which are written to describe the *state of the heap*, but necessarily not the line of code at fault:
 
 ```
 collection 2 left 98208 bytes in use where collection 1 left 49104, and the
 live set is the same shape and size every round.
 ```
 
-That is a fact about what your collector did. Working out which line caused it
+That is a fact about what your collector did and working out which line caused it
 is the exercise. When every test passes, the benchmark runs and you get numbers
 to compare against the other modules.
 
-## What you are given
+## Foundational Provided Things
 
-`crates/gc-core` is shared substrate, not an exercise. It is correct, and you
-should not need to change it.
+`crates/gc-core` is foundational, not intended as an exercise. It _should be_ correct (but this is software...), and should not require any changes.
 
 **`heap`** — a flat byte arena. Objects are a 16-byte header followed by
 reference slots and scalar payload, aligned to 16 bytes. A `Handle` is a byte
@@ -72,10 +70,9 @@ the difference between a relocating collector that works and one that merely
 looks like it does.
 
 `crates/gc-workloads` holds the candidate programs, and `crates/gc-harness` the
-conformance checks and the benchmark runner. Each module's test file names the
-checks that apply to it, so the suite reads as a statement of what that
-collector promises. Module 2 deliberately does not claim to collect cycles, and
-asserts that it leaks them.
+conformance checks and the benchmark runner. These are the things that we evaluate the different GC implementations on.
+
+Each module's test file names the checks that apply to it, so the suite reads as a statement of what that collector promises. For example, module 2 deliberately does not claim to collect cycles, and asserts that it leaks them.
 
 ## The modules
 

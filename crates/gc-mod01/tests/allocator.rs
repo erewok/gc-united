@@ -13,7 +13,8 @@ const CELL_DATA: u32 = 48;
 const CELL_SIZE: u32 = 64;
 
 fn cell(a: &mut Allocator) -> Handle {
-    a.alloc(CELL_REFS, CELL_DATA).expect("the heap should have had room for a 64 byte cell")
+    a.alloc(CELL_REFS, CELL_DATA)
+        .expect("the heap should have had room for a 64 byte cell")
 }
 
 /// Allocate `n` cells, failing the test if any request is refused.
@@ -32,10 +33,16 @@ fn allocations_are_aligned_distinct_and_in_bounds() {
     let mut seen: Vec<(u32, u32)> = Vec::new();
 
     for i in 0..200 {
-        let h = a.alloc((i % 4) as u16, 8 + (i % 5) * 16).expect("room for 200 small objects");
+        let h = a
+            .alloc((i % 4) as u16, 8 + (i % 5) * 16)
+            .expect("room for 200 small objects");
         let size = a.heap().size(h);
 
-        assert_eq!(h.addr() % ALIGN, 0, "object {i} was placed at unaligned address {h:?}");
+        assert_eq!(
+            h.addr() % ALIGN,
+            0,
+            "object {i} was placed at unaligned address {h:?}"
+        );
         assert!(size >= HEADER_SIZE, "object {i} at {h:?} has size {size}");
         assert!(
             h.addr() + size <= a.capacity(),
@@ -70,7 +77,11 @@ fn payloads_are_independent() {
             0xA5A5_0000 + i as u64,
             "object {i} at {h:?} does not hold what was written to it"
         );
-        assert_eq!(a.heap().data_u64(h, 8), !(i as u64), "object {i}: second word differs");
+        assert_eq!(
+            a.heap().data_u64(h, 8),
+            !(i as u64),
+            "object {i}: second word differs"
+        );
     }
 }
 
@@ -93,8 +104,12 @@ fn the_heap_can_be_filled_completely() {
         capacity as u32,
         "64 cells of {CELL_SIZE} bytes should exactly fill a {capacity} byte heap"
     );
-    assert!(a.alloc(CELL_REFS, CELL_DATA).is_none(), "a 65th cell should not fit");
-    a.validate().expect("a completely full heap should still be walkable");
+    assert!(
+        a.alloc(CELL_REFS, CELL_DATA).is_none(),
+        "a 65th cell should not fit"
+    );
+    a.validate()
+        .expect("a completely full heap should still be walkable");
 }
 
 #[test]
@@ -126,8 +141,16 @@ fn an_exactly_sized_hole_is_reused() {
 
     let hole = middle.addr();
     a.free(middle);
-    assert_eq!(a.free_block_count(), 1, "freeing one object should leave exactly one hole");
-    assert_eq!(a.heap().size(Handle(hole)), CELL_SIZE, "the hole should be cell-sized");
+    assert_eq!(
+        a.free_block_count(),
+        1,
+        "freeing one object should leave exactly one hole"
+    );
+    assert_eq!(
+        a.heap().size(Handle(hole)),
+        CELL_SIZE,
+        "the hole should be cell-sized"
+    );
 
     let replacement = cell(&mut a);
     assert_eq!(
@@ -137,7 +160,11 @@ fn an_exactly_sized_hole_is_reused() {
          requested, but it was placed at {:#x} instead",
         replacement.addr()
     );
-    assert_eq!(a.free_block_count(), 0, "the hole was exactly filled, so no free block remains");
+    assert_eq!(
+        a.free_block_count(),
+        0,
+        "the hole was exactly filled, so no free block remains"
+    );
 }
 
 #[test]
@@ -150,7 +177,10 @@ fn used_bytes_matches_the_heap_walk() {
             let h = live.remove((round as usize * 7) % live.len());
             a.free(h);
         } else {
-            live.push(a.alloc((round % 3) as u16, 8 + (round % 7) * 8).expect("room"));
+            live.push(
+                a.alloc((round % 3) as u16, 8 + (round % 7) * 8)
+                    .expect("room"),
+            );
         }
 
         assert_eq!(
@@ -183,10 +213,15 @@ fn coalescing_merges_every_adjacent_hole() {
     for h in hs {
         a.free(h);
     }
-    assert_eq!(a.free_block_count(), 64, "each freed cell should start as its own hole");
+    assert_eq!(
+        a.free_block_count(),
+        64,
+        "each freed cell should start as its own hole"
+    );
 
     a.coalesce_all();
-    a.validate().expect("coalescing must leave the heap walkable");
+    a.validate()
+        .expect("coalescing must leave the heap walkable");
 
     assert_eq!(
         a.free_block_count(),
@@ -201,10 +236,14 @@ fn coalescing_merges_every_adjacent_hole() {
         "the merged hole should span all {spanned} bytes that were freed"
     );
 
-    let big = a.alloc(0, spanned - HEADER_SIZE).expect(
-        "after merging, one object should be able to occupy the whole reclaimed region",
+    let big = a
+        .alloc(0, spanned - HEADER_SIZE)
+        .expect("after merging, one object should be able to occupy the whole reclaimed region");
+    assert_eq!(
+        big.addr(),
+        0,
+        "the merged hole starts at the bottom of the heap"
     );
-    assert_eq!(big.addr(), 0, "the merged hole starts at the bottom of the heap");
 }
 
 #[test]
@@ -222,13 +261,18 @@ fn coalescing_leaves_non_adjacent_holes_alone() {
     assert_eq!(before, 16, "every other cell of 32 was freed");
 
     a.coalesce_all();
-    a.validate().expect("coalescing must leave the heap walkable");
+    a.validate()
+        .expect("coalescing must leave the heap walkable");
     assert_eq!(
         a.free_block_count(),
         16,
         "none of these holes are adjacent, so none of them should have merged"
     );
-    assert_eq!(a.largest_free_block(), CELL_SIZE, "each hole is still one cell wide");
+    assert_eq!(
+        a.largest_free_block(),
+        CELL_SIZE,
+        "each hole is still one cell wide"
+    );
 
     // Now free the rest; everything should become one block.
     for (i, &h) in hs.iter().enumerate() {
@@ -237,8 +281,13 @@ fn coalescing_leaves_non_adjacent_holes_alone() {
         }
     }
     a.coalesce_all();
-    a.validate().expect("coalescing must leave the heap walkable");
-    assert_eq!(a.free_block_count(), 1, "with every cell freed, one hole should remain");
+    a.validate()
+        .expect("coalescing must leave the heap walkable");
+    assert_eq!(
+        a.free_block_count(),
+        1,
+        "with every cell freed, one hole should remain"
+    );
 }
 
 #[test]
@@ -272,7 +321,11 @@ fn best_fit_takes_the_tightest_hole() {
 
     let mut best = Allocator::with_policy(16 << 10, FitPolicy::Best);
     let (big, exact, medium) = layout(&mut best);
-    assert_eq!(best.free_block_count(), 3, "three holes should be available");
+    assert_eq!(
+        best.free_block_count(),
+        3,
+        "three holes should be available"
+    );
     let got = cell(&mut best);
     assert_eq!(
         got.addr(),
@@ -303,7 +356,10 @@ fn fragmentation_is_measurable() {
 
     let free = a.free_bytes();
     let largest = a.largest_free_block();
-    assert!(free > largest, "the heap holds {free} free bytes in blocks of at most {largest}");
+    assert!(
+        free > largest,
+        "the heap holds {free} free bytes in blocks of at most {largest}"
+    );
     assert!(
         a.alloc(0, free - HEADER_SIZE).is_none(),
         "an object needing all {free} free bytes cannot fit in any single hole"
@@ -343,19 +399,29 @@ fn random_churn_keeps_the_heap_consistent() {
         }
 
         if round % 200 == 0 {
-            a.validate().unwrap_or_else(|e| panic!("after round {round}: {e}"));
+            a.validate()
+                .unwrap_or_else(|e| panic!("after round {round}: {e}"));
         }
     }
 
     a.validate().expect("heap should be walkable at the end");
-    assert_eq!(a.used_bytes(), a.walk_live_bytes(), "final accounting disagrees with the walk");
+    assert_eq!(
+        a.used_bytes(),
+        a.walk_live_bytes(),
+        "final accounting disagrees with the walk"
+    );
 
     for h in live {
         a.free(h);
     }
     a.coalesce_all();
-    a.validate().expect("heap should be walkable once everything is freed");
-    assert_eq!(a.used_bytes(), 0, "every object was freed, so nothing should be in use");
+    a.validate()
+        .expect("heap should be walkable once everything is freed");
+    assert_eq!(
+        a.used_bytes(),
+        0,
+        "every object was freed, so nothing should be in use"
+    );
     assert_eq!(
         a.free_block_count(),
         1,
@@ -371,7 +437,10 @@ fn freed_memory_is_poisoned() {
     a.heap_mut().set_data_u64(h, 0, 0x1234_5678_9ABC_DEF0);
     a.free(h);
 
-    assert!(a.heap().flag(h, FLAG_FREE), "a freed block should be flagged free");
+    assert!(
+        a.heap().flag(h, FLAG_FREE),
+        "a freed block should be flagged free"
+    );
     assert!(
         a.heap().is_poisoned(h),
         "a freed block's payload should be overwritten, so that code still holding the old \

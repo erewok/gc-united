@@ -41,17 +41,35 @@ pub enum Violation {
     OutOfBounds { origin: Origin, handle: Handle },
     /// The object at this handle has no valid identity stamp: it was freed,
     /// overwritten, or was never an object.
-    CorruptPayload { origin: Origin, handle: Handle, found: u32 },
+    CorruptPayload {
+        origin: Origin,
+        handle: Handle,
+        found: u32,
+    },
     /// The stamp is valid but names an object the model has never seen.
-    UnknownIdentity { origin: Origin, handle: Handle, id: u64 },
+    UnknownIdentity {
+        origin: Origin,
+        handle: Handle,
+        id: u64,
+    },
     /// Two different addresses claim to be the same object.
     DuplicatedIdentity { id: u64, at: Vec<Handle> },
     /// The object at this handle is not the one that should be here.
-    WrongObject { origin: Origin, handle: Handle, expected: u64, found: u64 },
+    WrongObject {
+        origin: Origin,
+        handle: Handle,
+        expected: u64,
+        found: u64,
+    },
     /// A slot that should be null is not, or vice versa.
     NullMismatch { origin: Origin, expected_null: bool },
     /// The object's shape changed underneath the mutator.
-    ShapeMismatch { id: u64, handle: Handle, expected_nrefs: u16, found_nrefs: u16 },
+    ShapeMismatch {
+        id: u64,
+        handle: Handle,
+        expected_nrefs: u16,
+        found_nrefs: u16,
+    },
     /// Reachable according to the model, but the walk never reached it.
     Unreachable { id: u64, path: String },
     /// The root stack and the model's mirror of it have diverged.
@@ -59,7 +77,11 @@ pub enum Violation {
     /// A global the model holds is missing from the collector's root table.
     MissingGlobal { name: String },
     /// Bytes in use do not match the bytes the model says are still reachable.
-    Accounting { used: u32, reachable: u64, unreclaimed: i64 },
+    Accounting {
+        used: u32,
+        reachable: u64,
+        unreclaimed: i64,
+    },
 }
 
 impl fmt::Display for Violation {
@@ -69,14 +91,21 @@ impl fmt::Display for Violation {
                 f,
                 "{origin} holds {handle:?}, which is not a well-formed object address"
             ),
-            Violation::CorruptPayload { origin, handle, found } => write!(
+            Violation::CorruptPayload {
+                origin,
+                handle,
+                found,
+            } => write!(
                 f,
                 "{origin} holds {handle:?}, but the object there has no identity stamp \
                  (magic {found:#x}, expected {MAGIC:#x}) — it is reachable memory that has \
                  been freed or overwritten"
             ),
             Violation::UnknownIdentity { origin, handle, id } => {
-                write!(f, "{origin} holds {handle:?}, stamped with unknown identity #{id}")
+                write!(
+                    f,
+                    "{origin} holds {handle:?}, stamped with unknown identity #{id}"
+                )
             }
             Violation::DuplicatedIdentity { id, at } => write!(
                 f,
@@ -84,18 +113,31 @@ impl fmt::Display for Violation {
                  so mutating one will not be seen through the other",
                 at.len()
             ),
-            Violation::WrongObject { origin, handle, expected, found } => write!(
+            Violation::WrongObject {
+                origin,
+                handle,
+                expected,
+                found,
+            } => write!(
                 f,
                 "{origin} should name object #{expected}, but {handle:?} holds object #{found}"
             ),
-            Violation::NullMismatch { origin, expected_null } => {
+            Violation::NullMismatch {
+                origin,
+                expected_null,
+            } => {
                 if *expected_null {
                     write!(f, "{origin} should be null but holds an object")
                 } else {
                     write!(f, "{origin} should hold an object but is null")
                 }
             }
-            Violation::ShapeMismatch { id, handle, expected_nrefs, found_nrefs } => write!(
+            Violation::ShapeMismatch {
+                id,
+                handle,
+                expected_nrefs,
+                found_nrefs,
+            } => write!(
                 f,
                 "object #{id} at {handle:?} was allocated with {expected_nrefs} reference \
                  slots but its header now claims {found_nrefs}"
@@ -110,9 +152,16 @@ impl fmt::Display for Violation {
                 "the collector's shadow stack is {collector} deep, the mutator pushed {model}"
             ),
             Violation::MissingGlobal { name } => {
-                write!(f, "global {name:?} is bound in the mutator but absent from the roots")
+                write!(
+                    f,
+                    "global {name:?} is bound in the mutator but absent from the roots"
+                )
             }
-            Violation::Accounting { used, reachable, unreclaimed } => {
+            Violation::Accounting {
+                used,
+                reachable,
+                unreclaimed,
+            } => {
                 if *unreclaimed > 0 {
                     write!(
                         f,
@@ -198,14 +247,25 @@ impl fmt::Display for Report {
 /// Read the identity stamp of the object at `h`, if it has one.
 fn identity<C: Collector>(gc: &C, h: Handle, origin: &Origin) -> Result<u64, Violation> {
     if !gc.heap().in_bounds(h) {
-        return Err(Violation::OutOfBounds { origin: origin.clone(), handle: h });
+        return Err(Violation::OutOfBounds {
+            origin: origin.clone(),
+            handle: h,
+        });
     }
     if (gc.heap().data(h).len() as u32) < STAMP_BYTES {
-        return Err(Violation::CorruptPayload { origin: origin.clone(), handle: h, found: 0 });
+        return Err(Violation::CorruptPayload {
+            origin: origin.clone(),
+            handle: h,
+            found: 0,
+        });
     }
     let magic = gc.heap().data_u32(h, MAGIC_OFF);
     if magic != MAGIC {
-        return Err(Violation::CorruptPayload { origin: origin.clone(), handle: h, found: magic });
+        return Err(Violation::CorruptPayload {
+            origin: origin.clone(),
+            handle: h,
+            found: magic,
+        });
     }
     Ok(gc.heap().data_u64(h, ID_OFF))
 }
@@ -241,7 +301,16 @@ fn path_to(model: &Model, target: u64) -> String {
             if let Some(c) = child
                 && seen.insert(*c)
             {
-                prev.insert(*c, (Origin::Field { parent: id, index: i as u16 }, id));
+                prev.insert(
+                    *c,
+                    (
+                        Origin::Field {
+                            parent: id,
+                            index: i as u16,
+                        },
+                        id,
+                    ),
+                );
                 queue.push(*c);
             }
         }
@@ -287,12 +356,10 @@ pub fn verify<C: Collector>(gc: &mut C, model: &Model) -> Report {
         let expected = model.root(slot);
         match (expected, h.is_null()) {
             (None, true) => {}
-            (None, false) => {
-                report.record(Violation::NullMismatch {
-                    origin: Origin::RootSlot(slot),
-                    expected_null: true,
-                })
-            }
+            (None, false) => report.record(Violation::NullMismatch {
+                origin: Origin::RootSlot(slot),
+                expected_null: true,
+            }),
             (Some(_), true) => report.record(Violation::NullMismatch {
                 origin: Origin::RootSlot(slot),
                 expected_null: false,
@@ -329,7 +396,11 @@ pub fn verify<C: Collector>(gc: &mut C, model: &Model) -> Report {
             });
         }
         let Some(m) = model.get(found) else {
-            report.record(Violation::UnknownIdentity { origin, handle: h, id: found });
+            report.record(Violation::UnknownIdentity {
+                origin,
+                handle: h,
+                id: found,
+            });
             continue;
         };
 
@@ -353,15 +424,20 @@ pub fn verify<C: Collector>(gc: &mut C, model: &Model) -> Report {
         for (i, want) in expected_fields.iter().enumerate() {
             let i = i as u16;
             let child = gc.read_field(h, i);
-            let origin = Origin::Field { parent: found, index: i };
+            let origin = Origin::Field {
+                parent: found,
+                index: i,
+            };
             match (want, child.is_null()) {
                 (None, true) => {}
-                (None, false) => {
-                    report.record(Violation::NullMismatch { origin, expected_null: true })
-                }
-                (Some(_), true) => {
-                    report.record(Violation::NullMismatch { origin, expected_null: false })
-                }
+                (None, false) => report.record(Violation::NullMismatch {
+                    origin,
+                    expected_null: true,
+                }),
+                (Some(_), true) => report.record(Violation::NullMismatch {
+                    origin,
+                    expected_null: false,
+                }),
                 (Some(want_id), false) => queue.push((child, origin, Some(*want_id))),
             }
         }
@@ -372,7 +448,10 @@ pub fn verify<C: Collector>(gc: &mut C, model: &Model) -> Report {
         distinct.sort();
         distinct.dedup();
         if distinct.len() > 1 {
-            report.record(Violation::DuplicatedIdentity { id: *id, at: distinct });
+            report.record(Violation::DuplicatedIdentity {
+                id: *id,
+                at: distinct,
+            });
         }
     }
 

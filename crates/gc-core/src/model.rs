@@ -48,7 +48,10 @@ pub struct Model {
 
 impl Model {
     pub fn new() -> Model {
-        Model { next_id: 1, ..Model::default() }
+        Model {
+            next_id: 1,
+            ..Model::default()
+        }
     }
 
     /// Record a new object and return its identity.
@@ -75,7 +78,10 @@ impl Model {
     }
 
     pub fn store(&mut self, parent: u64, i: u16, child: Option<u64>) {
-        let p = self.objs.get_mut(&parent).expect("model: store into unknown object");
+        let p = self
+            .objs
+            .get_mut(&parent)
+            .expect("model: store into unknown object");
         p.fields[i as usize] = child;
     }
 
@@ -121,7 +127,12 @@ impl Model {
 
     /// Identities named directly by a root.
     pub fn root_ids(&self) -> Vec<u64> {
-        self.stack.iter().flatten().copied().chain(self.globals.values().copied()).collect()
+        self.stack
+            .iter()
+            .flatten()
+            .copied()
+            .chain(self.globals.values().copied())
+            .collect()
     }
 
     /// Every identity transitively reachable from a root. This is the exact
@@ -142,7 +153,11 @@ impl Model {
 
     /// Total heap footprint of everything reachable.
     pub fn reachable_bytes(&self) -> u64 {
-        self.reachable().iter().filter_map(|id| self.objs.get(id)).map(|o| o.size as u64).sum()
+        self.reachable()
+            .iter()
+            .filter_map(|id| self.objs.get(id))
+            .map(|o| o.size as u64)
+            .sum()
     }
 
     /// Every object ever allocated and not yet forgotten by the model.

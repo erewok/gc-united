@@ -80,7 +80,11 @@ impl Roots {
 
     /// Every non-null root, from both the shadow stack and the global table.
     pub fn iter(&self) -> impl Iterator<Item = Handle> + '_ {
-        self.stack.iter().chain(self.globals.values()).copied().filter(|h| !h.is_null())
+        self.stack
+            .iter()
+            .chain(self.globals.values())
+            .copied()
+            .filter(|h| !h.is_null())
     }
 
     /// Visit every root slot mutably, including globals.
