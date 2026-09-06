@@ -12,8 +12,7 @@ The goal for this project is to learn about the field.
 
 **`gc-mod01`**: bump pointers, free lists, splitting, coalescing, fragmentation.
 
-Before anything can be collected, something must hand out memory. This module has no garbage collection at all: you call `free` yourself. It establishes the object layout and the heap-walk invariant — *every block, live or free, carries
-its true size* — that every sweeping collector later depends on.
+Before anything can be collected, something must hand out memory. This module has no garbage collection at all: you call `free` yourself. It establishes the object layout and the heap-walk invariant — *every block, live or free, carries its true size* — that every sweeping collector later depends on.
 
 The lesson at the end is fragmentation: a heap can hold plenty of free bytes and still refuse a modest request, because no single hole is big enough. The benchmark measures this directly. Modules 5 and 6 attempt to fix this fragmentation.
 
@@ -127,9 +126,19 @@ The cost is precision. Objects that die after being marked survive to the next c
 
 ## Where the real systems sit
 
-- **CPython** — modules 2 and 3: reference counting for everything, plus a
-  generational cycle detector for the rest.
+- **CPython** — modules 2 and 3: reference counting for everything, plus a generational cycle detector for the rest.
 - **HotSpot (serial/parallel)** — modules 6 and 7 for the young generation, module 5 for the old one.
+- **HotSpot (G1, the JVM default since Java 9)** — the same pieces rearranged. The heap is cut into many small regions, each labelled young or old rather than living at a fixed address; a collection copies the live objects out of a chosen *subset* of regions (module 6) using per-region remembered sets (module 7), while concurrent tri-colour marking (module 8) works out which regions hold the most garbage and are worth collecting first. Its write barrier is Yuasa's, not Dijkstra's.
+- **ZGC and Shenandoah** — module 8's marking, plus the one idea this course does not build: they *move* objects while the program runs, which needs a **read** barrier rather than a write barrier. `Collector::read_field` is where one would go.
 - **V8** — module 7, with a copying scavenger for the nursery and incremental marking (module 8) for the old space.
 - **Go** — module 8: concurrent tri-colour marking with a deletion barrier, and no generations at all.
+- **.NET** — module 7 with three generations and module 5 to compact them. Large objects go in a separate space that is not compacted by default.
+- **Ruby** — module 4, grown incremental (module 8) and then generational (module 7). Compaction exists but you have to ask for it.
+- **PHP** — modules 2 and 3, arranged much as CPython arranges them.
+- **Swift and Objective-C** — module 2, and nothing else. There is no cycle collector, which is exactly why the language has `weak` and `unowned`: breaking cycles is the programmer's job.
+- **Rust** — no collector at all. `Rc` and `Arc` are module 2 done by hand, and they leak cycles precisely as module 2's last test says they do.
+- **Erlang** — module 6, once per process. Each process owns a small private heap, so a collection stops one process rather than the program.
+- **Lua** — module 8, with a generational mode (module 7) added in 5.4.
 - **Boehm** — module 4, conservatively: it does not know which words are pointers, so it treats anything that looks like one as a root.
+
+The G1, ZGC and Shenandoah papers are mentioned in `docs/reading.md`.
