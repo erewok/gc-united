@@ -93,6 +93,10 @@ several are built specifically to fail in ways the previous module could not.
 `docs/curriculum.md` goes into what each module is teaching and where to read
 more.
 
+`docs/reading.md` maps the literature onto the modules: for each one, the
+paper that introduced the idea, what to read it for, and which part of the
+module it explains.
+
 ## Reading the benchmark
 
 Wall-clock time on its own says very little about a collector — the fastest
