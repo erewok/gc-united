@@ -60,8 +60,8 @@ The course changes its mind about what garbage is. Instead of asking each object
 The costs invert too: marking is proportional to live data, sweeping to the size of the whole heap. And the mark bit belongs to one collection, so a collector that never clears it works perfectly exactly once.
 
 Readings:
-- McCarthy, *Recursive Functions of Symbolic Expressions* (1960); Jones,
-- Hosking and Moss, *The Garbage Collection Handbook*, chapter 2.
+- McCarthy, *Recursive Functions of Symbolic Expressions* (1960)
+- Jones, Hosking and Moss, *The Garbage Collection Handbook*, chapter 2.
 
 ---
 
@@ -88,7 +88,8 @@ Split the heap in two, use one half, and when it fills, copy the live objects in
 Half the memory is unused at all times, and every surviving object is copied on every collection. The defining hazard is sharing: an object reachable by two paths must be copied once and both references updated to the same address. A collector that copies it twice produces a heap that looks perfect and has silently turned one object into two.
 
 Readings:
-- Cheney, *A nonrecursive list compacting algorithm* (1970) - Fenichel and Yochelson (todo: title?) (1969).
+- Cheney, *A nonrecursive list compacting algorithm* (1970)
+- Fenichel and Yochelson (todo: title?) (1969).
 
 ---
 
@@ -117,7 +118,7 @@ The tri-colour abstraction makes the danger precise. An object is white (unreach
 
 The cost is precision. Objects that die after being marked survive to the next cycle — floating garbage — and objects allocated mid-cycle need a colour chosen carefully enough that they are not swept the moment they are born.
 
-- Read:
+Readings:
 - Dijkstra et al., *On-the-fly garbage collection* (1978)
 - Yuasa (todo: title...?)  (1990);
 - Go's `runtime/mgc.go`.
