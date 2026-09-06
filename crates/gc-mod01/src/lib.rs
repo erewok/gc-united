@@ -69,7 +69,7 @@ pub struct AllocStats {
 pub struct Allocator {
     heap: Heap,
     /// Free block addresses, kept sorted so that adjacency is easy to see.
-    free: Vec<Handle>,
+    free_handles: Vec<Handle>,
     /// First address never yet handed out. `[bump, capacity)` is virgin memory
     /// and has no headers, so the heap walk stops here.
     bump: u32,
@@ -82,7 +82,7 @@ impl Allocator {
     pub fn new(capacity: usize) -> Allocator {
         Allocator {
             heap: Heap::new(capacity),
-            free: Vec::new(),
+            free_handles: Vec::new(),
             bump: 0,
             used: 0,
             policy: FitPolicy::First,
@@ -122,21 +122,21 @@ impl Allocator {
     }
     /// Bytes sitting in free blocks, not counting virgin memory.
     pub fn free_bytes(&self) -> u32 {
-        self.free.iter().map(|&b| self.heap.size(b)).sum()
+        self.free_handles.iter().map(|&b| self.heap.size(b)).sum()
     }
     /// Bytes past the bump pointer that have never been used.
     pub fn virgin_bytes(&self) -> u32 {
         self.capacity() - self.bump
     }
     pub fn free_block_count(&self) -> usize {
-        self.free.len()
+        self.free_handles.len()
     }
     /// Size of the largest single free block, ignoring virgin memory.
     ///
     /// The gap between this and [`Allocator::free_bytes`] is a direct measure
     /// of how fragmented the heap has become.
     pub fn largest_free_block(&self) -> u32 {
-        self.free
+        self.free_handles
             .iter()
             .map(|&b| self.heap.size(b))
             .max()
@@ -144,7 +144,7 @@ impl Allocator {
     }
     /// Free block addresses, in address order.
     pub fn free_blocks(&self) -> &[Handle] {
-        &self.free
+        &self.free_handles
     }
 
     /// Allocate an object with `nrefs` reference slots and `ndata` payload
@@ -188,8 +188,8 @@ impl Allocator {
         self.stats.frees += 1;
         self.stats.bytes_freed += size as u64;
 
-        let pos = self.free.partition_point(|b| b.0 < h.0);
-        self.free.insert(pos, h);
+        let pos = self.free_handles.partition_point(|b| b.0 < h.0);
+        self.free_handles.insert(pos, h);
     }
 
     /// Carve `need` bytes off the front of never-used memory.
@@ -212,13 +212,13 @@ impl Allocator {
             FitPolicy::Best => self.best_fit(need),
         }?;
 
-        let block = self.free.remove(idx);
+        let block = self.free_handles.remove(idx);
         let block_size = self.heap.size(block);
         let remainder = block_size - need;
 
         if remainder > 0 {
             let split = self.heap.emplace_block(block.0 + need, remainder);
-            self.free.push(split);
+            self.free_handles.push(split);
             self.stats.splits += 1;
         }
 
@@ -236,7 +236,7 @@ impl Allocator {
 
     /// Index of the first free block with room for `need` bytes.
     fn first_fit(&self, need: u32) -> Option<usize> {
-        self.free.iter().position(|&b| self.fits(b, need))
+        self.free_handles.iter().position(|&b| self.fits(b, need))
     }
 
     /// Index of the *smallest* free block with room for `need` bytes, or
@@ -301,7 +301,7 @@ impl Allocator {
             ));
         }
 
-        let mut listed = self.free.clone();
+        let mut listed = self.free_handles.clone();
         listed.sort();
         if listed != walked_free {
             return Err(format!(
@@ -314,7 +314,7 @@ impl Allocator {
             ));
         }
 
-        for w in self.free.windows(2) {
+        for w in self.free_handles.windows(2) {
             if w[0].0 >= w[1].0 {
                 return Err(format!("the free list is not in address order: {w:?}"));
             }
