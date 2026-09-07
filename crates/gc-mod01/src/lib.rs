@@ -190,12 +190,13 @@ impl Allocator {
 
         let pos = self.free_handles.partition_point(|b| b.0 < h.0);
         self.free_handles.insert(pos, h);
+
     }
 
     /// Carve `need` bytes off the front of never-used memory.
     fn take_from_virgin(&mut self, need: u32) -> Option<u32> {
         let remaining = self.capacity() - self.bump;
-        if need < remaining {
+        if need <= remaining {
             let at = self.bump;
             self.bump += need;
             Some(at)
@@ -215,10 +216,13 @@ impl Allocator {
         let block = self.free_handles.remove(idx);
         let block_size = self.heap.size(block);
         let remainder = block_size - need;
-
-        if remainder > 0 {
+        // Splitting a block leaves a remainder behind, and that remainder has to
+        // carry a header of its own, so there must be room for both.
+        if remainder >= HEADER_SIZE {
             let split = self.heap.emplace_block(block.0 + need, remainder);
-            self.free_handles.push(split);
+            // needs to go in the right spot (not just at the end)
+            let pos = self.free_handles.partition_point(|b| b.0 < split.0);
+            self.free_handles.insert(pos, split);
             self.stats.splits += 1;
         }
 
@@ -226,12 +230,9 @@ impl Allocator {
     }
 
     /// Whether `block` can satisfy a request for `need` bytes.
-    ///
-    /// Splitting a block leaves a remainder behind, and that remainder has to
-    /// carry a header of its own, so there must be room for both.
     fn fits(&self, block: Handle, need: u32) -> bool {
         let size = self.heap.size(block);
-        size > need && size - need >= HEADER_SIZE
+        size >= need
     }
 
     /// Index of the first free block with room for `need` bytes.
@@ -246,7 +247,29 @@ impl Allocator {
     /// searching the whole list and of leaving behind smaller offcuts. Ties go
     /// to the lowest address, so that allocation stays deterministic.
     fn best_fit(&self, need: u32) -> Option<usize> {
-        todo!("choose the smallest free block that can hold {need} bytes")
+        self
+            .free_handles
+            .iter()
+            .enumerate()
+            // only fits, mod 16, mapped to idx and size
+            .filter_map(|(idx, b)| {
+                if self.fits(*b, need) {
+                    // map to size, idx
+                    Some((self.heap.size(*b), idx))
+                } else {
+                    None
+                }
+            })
+            .min()
+            // keep only idx
+            .map(|(_size, idx) | idx)
+    }
+
+    /// Check if blocks are adjacent
+    ///
+    pub fn are_adjacent(&self, left: &Handle, right: &Handle) -> bool {
+        let leftsize = self.heap.size(*left);
+        left.addr() + leftsize == right.addr()
     }
 
     /// Merge every run of adjacent free blocks into a single larger block.
@@ -257,7 +280,39 @@ impl Allocator {
     /// and the free list is rebuilt to match.
     /// Count one merge in [`AllocStats::merges`] for each pair of blocks joined.
     pub fn coalesce_all(&mut self) {
-        todo!("merge adjacent free blocks and rebuild the free list")
+        if self.free_block_count() <= 1 {
+            return;
+        }
+        // goal is to build a new list here
+        let mut new_free_handles: Vec<Handle> = Vec::new();
+
+        // we're going to use iterators to walk
+        let mut free_old_iter = self.free_handles.iter();
+        let mut left = free_old_iter.next();
+        let mut right = free_old_iter.next();
+        // push the first one
+        new_free_handles.push(*left.unwrap());
+
+        // walk to the right
+        while right.is_some() {
+            let left_addr = left.unwrap();
+            let right_addr = right.unwrap();
+            let are_adjacent = self.are_adjacent(left_addr, right_addr);
+            if are_adjacent {
+                let leftsize = self.heap.size(*left_addr);
+                let rightsize = self.heap.size(*right_addr);
+                // tell the heap that this block is now this size.
+                self.heap.emplace_block(left_addr.0, leftsize + rightsize);
+                self.stats.merges += 1;
+                // advance to drop this right
+                right = free_old_iter.next();
+            } else {
+                new_free_handles.push(*right_addr);
+                left = right;
+                right = free_old_iter.next();
+            }
+        }
+        self.free_handles = new_free_handles;
     }
 
     /// Walk the heap and check that it is structurally sound.
