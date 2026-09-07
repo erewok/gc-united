@@ -43,9 +43,9 @@
 //!
 //! ## Your work
 //!
-//! [`RefCount::write_field`] and [`RefCount::on_global_changed`] are
-//! unimplemented; the shadow stack hooks next to them show the shape. The rest
-//! of the module is written but does not pass its tests.
+//! [`RefCount::on_global_changed`] is unimplemented; the shadow stack hooks
+//! next to it show the shape. The rest of the module is written but does not
+//! pass its tests.
 
 use std::time::Instant;
 
@@ -188,8 +188,7 @@ impl Collector for RefCount {
     /// Store `val` into reference slot `i` of `obj`, keeping counts exact.
     ///
     /// `obj` gains a reference to `val` and loses its reference to whatever the
-    /// slot held before. Both counts have to move, and the order in which they
-    /// move is not a matter of taste.
+    /// slot held before. Both counts have to move.
     fn write_field(&mut self, obj: Handle, i: u16, val: Handle) {
         let old = self.heap().field(obj, i);
         self.release(old);
