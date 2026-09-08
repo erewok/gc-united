@@ -31,6 +31,10 @@ fn globals_are_roots() {
     checks::globals_are_roots(mk);
 }
 #[test]
+fn rebinding_a_global_leaves_other_roots_alone() {
+    checks::rebinding_a_global_leaves_other_roots_alone(mk);
+}
+#[test]
 fn reclaims_unreachable() {
     checks::reclaims_unreachable(mk);
 }

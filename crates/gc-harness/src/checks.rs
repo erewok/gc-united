@@ -109,6 +109,70 @@ pub fn globals_are_roots<C: Collector>(mk: impl Fn(usize) -> C) {
     mu.unwind(base);
 }
 
+/// Rebinding a global disturbs the binding and nothing else.
+///
+/// A global and the shadow stack are separate parts of the root set, and both
+/// can name the same object at once. Rebinding the global changes what that
+/// *name* refers to; a slot that independently refers to the old object is not
+/// part of the transaction and must come through it untouched.
+///
+/// A collector that implements the global hook by scanning the roots for the
+/// old handle will quietly rewrite those slots instead. Nothing observable
+/// happens at the time — the counts can even come out exact — so the damage
+/// only surfaces when something reads through the slot much later.
+pub fn rebinding_a_global_leaves_other_roots_alone<C: Collector>(mk: impl Fn(usize) -> C) {
+    let mut mu = Mutator::new(mk(SMALL_HEAP));
+    let base = mu.root_depth();
+
+    // `named` is reachable two ways: through the global bound below, and
+    // through the shadow stack slot that rooted it at allocation.
+    let named = mu.alloc(1, 8);
+    mu.write_u64(named, 0, 0xFEED_FACE);
+    let child = mu.alloc(0, 8);
+    mu.write_u64(child, 0, 0x0C0F_FEE0);
+    mu.store(named, 0, child);
+    mu.set_global("binding", named);
+
+    // Move the name onto a different object. The slot still holds `named`.
+    let other = mu.alloc(0, 8);
+    mu.set_global("binding", other);
+    mu.assert_consistent();
+    assert_eq!(
+        mu.read_u64(named, 0),
+        0xFEED_FACE,
+        "after rebinding the global, the slot that also named the old object \
+         no longer reads as that object"
+    );
+    let still_child = mu.load(named, 0);
+    assert!(
+        !mu.is_null(still_child),
+        "after rebinding the global, the old object lost its child"
+    );
+    assert_eq!(
+        mu.read_u64(still_child, 0),
+        0x0C0F_FEE0,
+        "after rebinding the global, the old object's child is a different object"
+    );
+
+    // Clearing a binding is the same operation with a null new value, and has
+    // the same obligation to leave the stack alone.
+    mu.set_global("binding", named);
+    mu.clear_global("binding");
+    mu.assert_consistent();
+    assert!(
+        !mu.is_null(named),
+        "clearing the global nulled the slot that also named its object"
+    );
+    assert_eq!(
+        mu.read_u64(named, 0),
+        0xFEED_FACE,
+        "clearing the global redirected the slot that also named its object"
+    );
+
+    mu.unwind(base);
+    mu.assert_consistent();
+}
+
 /// Unreachable objects are reclaimed, and nothing else is.
 ///
 /// The live set is replaced wholesale between collections, so each round the
@@ -377,6 +441,7 @@ pub fn tracing_suite<C: Collector>(mk: impl Fn(usize) -> C + Copy) {
     allocates_and_reads_back(mk);
     retains_reachable(mk);
     globals_are_roots(mk);
+    rebinding_a_global_leaves_other_roots_alone(mk);
     reclaims_unreachable(mk);
     preserves_sharing(mk);
     collects_cycles(mk);
