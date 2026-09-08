@@ -1,8 +1,9 @@
 # GC United — a garbage collection course in Rust.
 #
-#   just run 1      work module 1: tests, then the benchmark if they pass
-#   just list       what the modules are
-#   just test-all   run every module's tests
+#   just run 1          work module 1: tests, then the benchmark if they pass
+#   just test 2 chain   run only module 2's tests matching "chain", output uncaptured
+#   just list           what the modules are
+#   just test-all       run every module's tests
 
 _default:
     @just list
@@ -22,14 +23,28 @@ list:
     printf "  %-3s %-22s %s\n" 6 "gc-mod06" "semispace copying"
     printf "  %-3s %-22s %s\n" 7 "gc-mod07" "generational collection"
     printf "  %-3s %-22s %s\n" 8 "gc-mod08" "incremental tri-colour marking"
-    printf "\n  just run N   to work on one\n\n"
+    printf "\n  just run N          to work on one\n"
+    printf "  just test N NAME    to run one test with its output\n\n"
 
 # Work module N: run its tests, then its benchmark if they all pass.
-run N: (test N)
-    @just bench {{N}}
+#
+# With TEST, run only the matching tests and skip the benchmark, which means
+# nothing until the whole module passes.
+run N TEST="":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    just test {{N}} "{{TEST}}" || exit $?
+    if [ -n "{{TEST}}" ]; then
+        printf "\n  benchmark skipped — only a filtered set of tests ran\n\n"
+        exit 0
+    fi
+    just bench {{N}}
 
 # Run module N's tests.
-test N:
+#
+# TEST narrows the run to tests whose name contains it, and stops nextest
+# capturing their output, so a println! you added while debugging is visible.
+test N TEST="":
     #!/usr/bin/env bash
     set -uo pipefail
     crate=$(printf "gc-mod%02d" {{N}})
@@ -38,7 +53,11 @@ test N:
         exit 127
     fi
     printf "\n  module %s — %s\n\n" {{N}} "$crate"
-    cargo nextest run -p "$crate" --no-fail-fast --status-level all
+    if [ -n "{{TEST}}" ]; then
+        cargo nextest run -p "$crate" --no-fail-fast --no-capture -E 'test(~{{TEST}})'
+    else
+        cargo nextest run -p "$crate" --no-fail-fast --status-level all
+    fi
 
 # Run module N's benchmark. Only meaningful once its tests pass.
 bench N:
