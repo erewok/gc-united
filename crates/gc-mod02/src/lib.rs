@@ -120,9 +120,10 @@ impl RefCount {
             self.space.heap_mut().set_rc(obj, rc - 1);
 
             if rc == 1 {
-                self.free_object(obj);
                 let children = self.space.heap().children(obj);
                 self.pending.extend(children);
+                // this release has to go last also
+                self.free_object(obj);
             }
         }
     }
@@ -190,10 +191,12 @@ impl Collector for RefCount {
     /// `obj` gains a reference to `val` and loses its reference to whatever the
     /// slot held before. Both counts have to move.
     fn write_field(&mut self, obj: Handle, i: u16, val: Handle) {
-        let old = self.heap().field(obj, i);
-        self.release(old);
-        self.heap_mut().set_field(obj, i, val);
         self.retain(val);
+        // set obj.i => val reference here and lose obj.i => old
+        let old = self.heap().field(obj, i);
+        self.heap_mut().set_field(obj, i, val);
+        // if last reference, the val could may have been accidentally gc'd, so we decrement last
+        self.release(old);
     }
 
     /// Rebind a global from `old` to `new`.
@@ -201,7 +204,8 @@ impl Collector for RefCount {
     /// The global table is part of the root set, so a binding is a reference
     /// like any other: rebinding one both creates a reference and destroys one.
     fn on_global_changed(&mut self, old: Handle, new: Handle) {
-        todo!("a global has been rebound from {old:?} to {new:?}")
+        self.on_root_pushed(new);
+        self.on_root_popped(old);
     }
 
     fn on_root_pushed(&mut self, h: Handle) {
