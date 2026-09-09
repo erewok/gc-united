@@ -212,7 +212,17 @@ impl CycleCollector {
     /// subtracted from it. An object already gray has had its own children
     /// dealt with, but an edge arriving at it still has to be subtracted.
     pub fn mark_gray(&mut self, root: Handle) {
-        todo!("trially delete the internal references of {root:?}'s subgraph")
+        let mut work = vec![root];
+        while let Some(s) = work.pop() {
+            if self.color(s) != GRAY {
+                self.set_color(s, GRAY);
+                for t in self.children(s) {
+                    let rc = self.space.heap().rc(s);
+                    self.space.heap_mut().set_rc(s, rc - 1);
+                    work.push(t);
+                }
+            }
+        }
     }
 
     /// Decide, for each object in `root`'s gray subgraph, whether it survives.
@@ -261,7 +271,16 @@ impl CycleCollector {
     /// object destroys the references the traversal is walking.
     /// Count every object freed here in [`CycleCollector::cycles_collected`].
     pub fn collect_white(&mut self, root: Handle) {
-        todo!("free what is left white in {root:?}'s subgraph")
+        let mut work = vec![root];
+        while let Some(s) = work.pop() {
+            if self.color(s) == WHITE && !self.candidates.contains(&s) {
+                self.set_color(s, BLACK);
+                for t in self.children(s) {
+                    work.push(t);
+                }
+                self.space.free(s);
+            }
+        }
     }
 
     /// Examine every candidate and free whatever turns out to be a garbage
