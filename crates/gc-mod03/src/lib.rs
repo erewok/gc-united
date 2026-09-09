@@ -270,7 +270,7 @@ impl CycleCollector {
         let candidates = std::mem::take(&mut self.candidates);
 
         // Pass 1: trial deletion over every suspect subgraph.
-        let mut roots: Vec<Handle> = Vec::new();
+        let mut cycle_roots: Vec<Handle> = Vec::new();
         for &s in &candidates {
             // An entry is stale if the block was freed, or reused for another
             // object, since it was filed.
@@ -279,17 +279,17 @@ impl CycleCollector {
             }
             if self.color(s) == PURPLE && self.space.heap().rc(s) > 0 {
                 self.mark_gray(s);
-                roots.push(s);
+                cycle_roots.push(s);
             }
         }
 
         // Pass 2: work out which of them were really unreachable.
-        for &s in &roots {
+        for &s in &cycle_roots {
             self.scan(s);
         }
 
         // Pass 3: free them.
-        for &s in &roots {
+        for &s in &cycle_roots {
             self.set_buffered(s, false);
             self.collect_white(s);
         }
